@@ -7,7 +7,17 @@ import Groq from "groq-sdk";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// ✅ Allow your Firebase hosted frontend + localhost
+app.use(
+  cors({
+    origin: [
+      "https://ai-code-explainer-716e6.web.app",
+      "http://localhost:3000"
+    ],
+  })
+);
+
 app.use(express.json());
 
 const port = process.env.PORT || 5000;
@@ -24,7 +34,7 @@ async function getValidModel() {
     const modelsResp = await client.models.list();
     const names = modelsResp.data.map(m => m.id);
     console.log("Available models from Groq:", names);
-    // prioritize some lighter / commonly available models
+
     const preferred = [
       "groq/llama-3.1-8b-instant",
       "groq/mixtral-8x7b-32768",
@@ -34,8 +44,8 @@ async function getValidModel() {
     for (const p of preferred) {
       if (names.includes(p)) return p;
     }
-    // fallback: just return the first model in list
-    return names[0];
+
+    return names[0]; // fallback
   } catch (e) {
     console.error("Error fetching model list:", e);
     return null;
@@ -53,6 +63,7 @@ app.post("/explain", async (req, res) => {
     if (!modelName) {
       return res.status(500).json({ error: "Could not get valid model from Groq" });
     }
+
     console.log("Using model:", modelName);
 
     const systemPrompt = {
@@ -60,6 +71,7 @@ app.post("/explain", async (req, res) => {
       content:
         "You are a friendly teacher and programming assistant. Explain code clearly and simply, find likely errors, and suggest improvements.",
     };
+
     const userPrompt = {
       role: "user",
       content: `Please:
